@@ -16,11 +16,15 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.Firebase
+import com.google.firebase.initialize
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Firebase.initialize(this)
         setContent {
             MyApp()}
     }
@@ -36,4 +40,5 @@ fun MyApp() {
         composable("loginScreen") { LoginScreen(navController) }
         composable("signUpScreen") { SignUpScreen(navController) }
         composable("otpInputScreen") { VerificationCodeScreen(navController) }
-        composable("homePageScreenClient") { HomePageClient(navController) }}}
+        composable("homePageScreenClient") { HomePageClient(navController) }}
+}

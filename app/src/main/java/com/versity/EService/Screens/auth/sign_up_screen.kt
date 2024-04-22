@@ -1,6 +1,7 @@
+import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import kotlinx.coroutines.tasks.await
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
@@ -12,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,15 +35,94 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavHostController
+import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
+import com.google.firebase.app
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.ktx.options
+import com.google.firebase.storage.FirebaseStorage
 import com.versity.EService.R
+import kotlinx.coroutines.launch
 
+@SuppressLint("RememberReturnType")
 @Composable
 fun SignUpScreen(navController: NavHostController) {
+    var auth: FirebaseAuth
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    suspend  fun updateProfile(uid: String, name: String, booleanValue: Boolean) {
+        auth = Firebase.auth
+        val user = auth.currentUser
+        val profileUpdates = UserProfileChangeRequest.Builder()
+            .setDisplayName(name)
+            .build()
+        user?.updateProfile(profileUpdates)?.await()
+        // Store boolean value in Firestore or Realtime Database
+        // For example, in Firestore
+        val firestore = FirebaseFirestore.getInstance()
+
+        firestore
+            .collection("users")
+            .document(uid)
+            .set(
+                mapOf(
+                    "name" to name,
+                    "booleanValue" to booleanValue
+                )
+            )
+            .await()
+    }
+
+// Function to create user with email and password
+    auth = Firebase.auth
+     suspend fun createUserWithEmailAndPassword(
+        email: String,
+        password: String,
+        name: String,
+        booleanValue: Boolean
+    ): String {
+        val authResult = auth.createUserWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Sign Up Successfull")
+                    }
+                    navController.navigate("loginScreen")
+
+                } else {
+                    // If sign in fails, display a message to the user.
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Sign Up Successfull")
+
+                    }
+                }
+            }.await()
+        val user = authResult.user
+        // Update user profile with additional information
+        if (user != null) {
+            updateProfile(user.uid, name, booleanValue)
+        }
+        if (user != null) {
+            return user.uid
+        }
+
+
+        return  ""; // Function to update user profile
+
+    }
     var username by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val showDialog = remember { mutableStateOf(false) }
     var selectedOption by remember { mutableStateOf(0) }
+
+
+
     Surface(color = Color.LightGray) {
         Column(
             modifier = Modifier
@@ -84,33 +165,34 @@ fun SignUpScreen(navController: NavHostController) {
                     .padding(bottom = 16.dp),
                 visualTransformation = PasswordVisualTransformation()
             )
-                      Row(
-                            modifier = Modifier.padding(5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = selectedOption == 0,
-                                onClick = { selectedOption = 0 }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Service Provider")
+            Row(
+                modifier = Modifier.padding(5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = selectedOption == 0,
+                    onClick = { selectedOption = 0 }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Service Provider")
 
-                            Spacer(modifier = Modifier.width(5.dp))
+                Spacer(modifier = Modifier.width(5.dp))
 
-                            RadioButton(
-                                selected = selectedOption == 1,
-                                onClick = { selectedOption = 1 }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Service Taker")
-                        }
+                RadioButton(
+                    selected = selectedOption == 1,
+                    onClick = { selectedOption = 1 }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Service Taker")
+            }
 
 
 
             Button(
                 onClick = {
-                    navController.navigate("loginScreen")
-                },
+                  scope.launch { 
+                        createUserWithEmailAndPassword("hrido@gmail.com", password, username, true)
+                    } },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black
@@ -130,19 +212,31 @@ fun SignUpScreen(navController: NavHostController) {
                 )
             }
 
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
 
                 contentAlignment = Alignment.BottomStart
-            ) {  ClickableText(onClick = {
-                navController.navigate("loginScreen")
+            ) {
+                ClickableText(
+                    onClick = {
+                        navController.navigate("loginScreen")
 
-            },
-                text = AnnotatedString("Log In"),
-                style = TextStyle(fontSize =  15.sp, color = Color.Blue, textAlign = TextAlign.Left,),
-                modifier = Modifier.padding(bottom = 32.dp)
-            )}
-        }
+                    },
+                    text = AnnotatedString("Log In"),
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        color = Color.Blue,
+                        textAlign = TextAlign.Left,
+                    ),
+                    modifier = Modifier.padding(bottom = 32.dp)
+                )
+            }
+        }}
     }
-}
+
+    // SharedCode module
+
+
+

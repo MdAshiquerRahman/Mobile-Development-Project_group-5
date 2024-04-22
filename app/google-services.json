@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "91758477342",
+    "project_id": "eservice-420304",
+    "storage_bucket": "eservice-420304.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:91758477342:android:4956bdb3c6ed14967eae0f",
+        "android_client_info": {
+          "package_name": "com.versity.EService"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlDcF_kEAOXvuQWYCHfOA7MzsjN9C4yOM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
